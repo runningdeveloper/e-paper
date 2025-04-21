@@ -1,8 +1,6 @@
 from flask import Flask, request, jsonify, send_from_directory
-from lib.waveshare_epd import epd2in13
 import os
-import time
-from PIL import Image
+from display.epaper import display_image, display_text
 
 app = Flask(__name__)
 
@@ -34,22 +32,13 @@ def upload_image():
     file_path = os.path.join(UPLOAD_FOLDER, file.filename)
     file.save(file_path)
 
-    epd = epd2in13.EPD()
-    print("init and Clear")
-    epd.init(epd.lut_full_update)
-    epd.Clear(0xFF)
+    # Display the image on e-paper display
+    success = display_image(file_path)
 
-    time.sleep(2)
-
-    print("Display image")
-
-    image = Image.open(os.path.join(UPLOAD_FOLDER, file.filename))
-    epd.display(epd.getbuffer(image))
-    time.sleep(2)
-
-    epd.sleep()
-
-    return jsonify({'message': f'File {file.filename} uploaded successfully'}), 201
+    if success:
+        return jsonify({'message': f'File {file.filename} uploaded and displayed successfully'}), 201
+    else:
+        return jsonify({'message': f'File {file.filename} uploaded but display failed'}), 500
 
 @app.route('/images', methods=['GET'])
 def list_images():
@@ -88,5 +77,29 @@ def get_image(filename):
     """
     return send_from_directory(UPLOAD_FOLDER, filename)
 
+@app.route('/display-text', methods=['POST'])
+def show_text():
+    """
+    Endpoint to display text on the e-paper display
+    """
+    data = request.json
+    
+    if not data or 'text' not in data:
+        return jsonify({'error': 'Text content is required'}), 400
+    
+    text = data['text']
+    
+    # Optional parameters with defaults
+    max_width = data.get('max_width', 122)
+    max_height = data.get('max_height', 250)
+    
+    # Display the text on e-paper display
+    success = display_text(text, max_width, max_height)
+    
+    if success:
+        return jsonify({'message': 'Text displayed successfully'}), 200
+    else:
+        return jsonify({'error': 'Failed to display text'}), 500
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host="0.0.0.0", debug=False)
