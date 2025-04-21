@@ -143,7 +143,7 @@ def display_text(text, max_width=122, max_height=250, rotate=True):
         # Rotate the image if needed
         if rotate:
             # Rotate 90 degrees counterclockwise
-            image = image.rotate(90, expand=True)
+            image = image.rotate(270, expand=True)
         
         if PI_AVAILABLE:
             epd = init_and_clear_display()
